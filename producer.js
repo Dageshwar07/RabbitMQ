@@ -6,15 +6,20 @@ async function sendMail() {
         const channel = await connection.createChannel();
         
         const exchange = "mail_exchange";
-        const routingKey = "send_mail";
-        const queue = "mail_queue";
+        const routingKeyForSubUser = "send_mail_to_subscribe_user";
+        const routingKeyForNormalUser = "send_mail_to_user";
+        const sub_queue = "subscribe_user_mail_queue";
+        const user_queue = "user_mail_queue";
 
         // Declare exchange
         await channel.assertExchange(exchange, "direct", { durable: false });
 
         // Declare queue and bind to exchange
-        await channel.assertQueue(queue, { durable: false });
-        await channel.bindQueue(queue, exchange, routingKey);
+        await channel.assertQueue(sub_queue, { durable: false });
+        await channel.assertQueue(user_queue, { durable: false });
+
+        await channel.bindQueue(sub_queue, exchange, routingKeyForSubUser);
+        await channel.bindQueue(user_queue, exchange, routingKeyForNormalUser);
 
         // Message to send
         const message = {
@@ -25,7 +30,8 @@ async function sendMail() {
         };
 
         // Publish message to exchange with routing key
-        channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(message), { persistent: true }));
+        channel.publish(exchange, routingKeyForSubUser, Buffer.from(JSON.stringify(message), { persistent: true }));
+        channel.publish(exchange, routingKeyForNormalUser, Buffer.from(JSON.stringify(message), { persistent: true }));
 
         console.log("✅ Mail data sent:", message);
 
