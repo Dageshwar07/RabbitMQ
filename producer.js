@@ -1,40 +1,26 @@
 const amqp = require("amqplib");
 
-async function sendMail() {
+const sendMessage = async (routingKey, message) => {
     try {
         const connection = await amqp.connect("amqp://localhost");
         const channel = await connection.createChannel();
-        
-        const exchange = "mail_exchange";
-        const routingKey = "send_mail";
-        const queue = "mail_queue";
+        const exchange = "notification_exchange";
+        const exchangeType = "topic";
 
-        // Declare exchange
-        await channel.assertExchange(exchange, "direct", { durable: false });
+        await channel.assertExchange(exchange, exchangeType, { durable: true });
 
-        // Declare queue and bind to exchange
-        await channel.assertQueue(queue, { durable: false });
-        await channel.bindQueue(queue, exchange, routingKey);
-
-        // Message to send
-        const message = {
-            to: "pratik@gmail.com",
-            from: "dageshwardasmanikpuri996@gmail.com",
-            subject: "Hello from queue",
-            body: "Hello Dagesh"
-        };
-
-        // Publish message to exchange with routing key
-        channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(message), { persistent: true }));
-
-        console.log("✅ Mail data sent:", message);
+        channel.publish(exchange, routingKey, Buffer.from(JSON.stringify(message)), { persistent: true });
+        console.log(" [x] Sent '%s':'%s'", routingKey, JSON.stringify(message));
+        console.log(`Mes was send! with routing key as ${routingKey} and content as ${message}`);
 
         setTimeout(() => {
             connection.close();
-        }, 5000);
+        }, 500);
     } catch (error) {
-        console.error("❌ Error sending mail:", error);
+        console.error("Error:", error);
     }
-}
+};
 
-sendMail();
+// Example usage
+sendMessage("order.placed", { orderId: 12345, status: "placed" });
+sendMessage("payment.processed", { paymentId: 67890, status: "processed" });
